@@ -1,64 +1,90 @@
 package org.azati.cources.services;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 public class Depersonalization {
 
-    public static void readFiles(String path) {
+    public static void readFiles(String path) throws IOException {
         File dir = new File(path);
-        List<File> list = new ArrayList<>();
         for (File file : dir.listFiles()) {
             if (file.isFile()) {
-                list.add(file);
                 canWeDoZip(file);
                 System.out.println(file.getName());
             }
         }
     }
 
-    public static void canWeDoZip(File file) {
-        try(ZipInputStream zin = new ZipInputStream(new FileInputStream(file.getAbsolutePath())))
-        {
-            ZipEntry entry;
-            String name;
-            long size;
-            while((entry=zin.getNextEntry())!=null){
+    public static void canWeDoZip(File file) throws IOException {
+        File folderZip = new File(file.getCanonicalPath() + File.separator + "folder");
+        if (!folderZip.exists()) {
+            folderZip.mkdir();
+        }
+        File newFile = new File(file.getCanonicalPath().substring(0, file.getCanonicalPath().indexOf('.')) + ".zip");
+        if (file.renameTo(newFile)) {
+            System.out.println("Файл переименован успешно");
+            ;
+        } else {
+            System.out.println("Файл не был переименован");
+        }
+        unZipFile(file.getCanonicalPath());
 
-                name = entry.getName(); // получим название файла
-                size=entry.getSize();  // получим его размер в байтах
-                System.out.printf("File name: %s \t File size: %d \n", name, size);
-                if(name.equals("word/document.xml")){
-                    Scanner s = new Scanner(zin).useDelimiter("\\A");
-                    String result = s.hasNext() ? s.next() : "";
-                    System.out.println(result);
+
+    }
+
+    public static void unZipFile(String path) throws IOException {
+        String fileZip = path;
+        File destDir = new File("src/main/resources/programmist/folder");
+        byte[] buffer = new byte[1024];
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(fileZip));
+        ZipEntry zipEntry = zis.getNextEntry();
+        while (zipEntry != null) {
+            while (zipEntry != null) {
+                File newFile = newFile(destDir, zipEntry);
+                if (zipEntry.isDirectory()) {
+                    if (!newFile.isDirectory() && !newFile.mkdirs()) {
+                        throw new IOException("Failed to create directory " + newFile);
+                    }
+                } else {
+                    // fix for Windows-created archives
+                    File parent = newFile.getParentFile();
+                    if (!parent.isDirectory() && !parent.mkdirs()) {
+                        throw new IOException("Failed to create directory " + parent);
+                    }
+
+                    // write file content
+                    FileOutputStream fos = new FileOutputStream(newFile);
+                    int len;
+                    while ((len = zis.read(buffer)) > 0) {
+                        fos.write(buffer, 0, len);
+                    }
+                    fos.close();
                 }
-
+                zipEntry = zis.getNextEntry();
             }
         }
-        catch(Exception ex){
-
-            System.out.println(ex.getMessage());
-        }
+        zis.closeEntry();
+        zis.close();
     }
 
-    public static void readXml(File file){
-        try(FileReader reader = new FileReader(file.getAbsolutePath()))
-        {
-            // читаем посимвольно
-            int c;
-            while((c=reader.read())!=-1){
+    public static File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
+        File destFile = new File(destinationDir, zipEntry.getName());
 
-                System.out.print((char)c);
-            }
-        }
-        catch(IOException ex){
+        String destDirPath = destinationDir.getCanonicalPath();
+        String destFilePath = destFile.getCanonicalPath();
 
-            System.out.println(ex.getMessage());
+        if (!destFilePath.startsWith(destDirPath + File.separator)) {
+            throw new IOException("Entry is outside of the target dir: " + zipEntry.getName());
         }
+
+        return destFile;
     }
+
+
 }
