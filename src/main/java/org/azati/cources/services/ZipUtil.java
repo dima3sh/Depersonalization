@@ -4,41 +4,43 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-public class ZipService {
+public class ZipUtil {
+
     public static void unZipFile(String path) throws IOException {
         String fileZip = path;
-        File destDir = new File("src/main/resources/programmist/folder");
+        File destDir = new File(new Properties().getProperty("pathFolder"));
         byte[] buffer = new byte[1024];
         ZipInputStream zis = new ZipInputStream(new FileInputStream(fileZip));
         ZipEntry zipEntry = zis.getNextEntry();
+
         while (zipEntry != null) {
-            while (zipEntry != null) {
-                File newFile = newFile(destDir, zipEntry);
-                if (zipEntry.isDirectory()) {
-                    if (!newFile.isDirectory() && !newFile.mkdirs()) {
-                        throw new IOException("Failed to create directory " + newFile);
-                    }
-                } else {
-
-                    File parent = newFile.getParentFile();
-                    if (!parent.isDirectory() && !parent.mkdirs()) {
-                        throw new IOException("Failed to create directory " + parent);
-                    }
-
-                    FileOutputStream fos = new FileOutputStream(newFile);
-                    int len;
-                    while ((len = zis.read(buffer)) > 0) {
-                        fos.write(buffer, 0, len);
-                    }
-                    fos.close();
+            File newFile = newFile(destDir, zipEntry);
+            if (zipEntry.isDirectory()) {
+                if (!newFile.isDirectory() && !newFile.mkdirs()) {
+                    throw new IOException("Failed to create directory " + newFile);
                 }
-                zipEntry = zis.getNextEntry();
+            } else {
+
+                File parent = newFile.getParentFile();
+                if (!parent.isDirectory() && !parent.mkdirs()) {
+                    throw new IOException("Failed to create directory " + parent);
+                }
+
+                FileOutputStream fos = new FileOutputStream(newFile);
+                int len;
+                while ((len = zis.read(buffer)) > 0) {
+                    fos.write(buffer, 0, len);
+                }
+                fos.close();
             }
+            zipEntry = zis.getNextEntry();
         }
+
         zis.closeEntry();
         zis.close();
     }
@@ -56,9 +58,14 @@ public class ZipService {
         return destFile;
     }
 
-    public static void zipFile(File fileToZip, String fileName, ZipOutputStream zipOut) throws IOException {
+    public static Boolean zip(String fileName) throws IOException {
+        FileOutputStream fos = new FileOutputStream(fileName);
+        ZipOutputStream zipOut = new ZipOutputStream(fos);
+        Properties properties = new Properties();
+        File fileToZip = new File(properties.getProperty("pathFolder"));
+
         if (fileToZip.isHidden()) {
-            return;
+            return false;
         }
         if (fileToZip.isDirectory()) {
             if (fileName.endsWith("/")) {
@@ -70,9 +77,9 @@ public class ZipService {
             }
             File[] children = fileToZip.listFiles();
             for (File childFile : children) {
-                zipFile(childFile, fileName + "/" + childFile.getName(), zipOut);
+                zip(fileName + "/" + childFile.getName());
             }
-            return;
+            return true;
         }
         FileInputStream fis = new FileInputStream(fileToZip);
         ZipEntry zipEntry = new ZipEntry(fileName);
@@ -83,5 +90,9 @@ public class ZipService {
             zipOut.write(bytes, 0, length);
         }
         fis.close();
+
+        zipOut.close();
+        fos.close();
+        return true;
     }
 }

@@ -19,10 +19,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.zip.ZipOutputStream;
 
-import static org.azati.cources.services.ZipService.unZipFile;
-import static org.azati.cources.services.ZipService.zipFile;
+import static org.azati.cources.services.ZipUtil.unZipFile;
+import static org.azati.cources.services.ZipUtil.zip;
 
-public class Depersonalization {
+public class DepersonalizationUtil {
 
     public static void readFiles(String path) throws IOException, ParserConfigurationException, SAXException {
         File dir = new File(path);
@@ -39,9 +39,7 @@ public class Depersonalization {
         if (!folderZip.exists()) {
             folderZip.mkdir();
         }
-        File newFile = new File(file.getCanonicalPath().substring(0, file.getCanonicalPath().indexOf('.'))
-                + ".zip");
-        file.renameTo(newFile);
+
         unZipFile(file.getCanonicalPath());
         parseXML(file.getCanonicalPath().substring(0, file.getCanonicalPath().lastIndexOf('\\'))
                 + File.separator + "folder/word/document.xml");
@@ -51,12 +49,9 @@ public class Depersonalization {
         ZipOutputStream zipOut = new ZipOutputStream(fos);
         File fileToZip = new File(sourceFile);
 
-        zipFile(fileToZip, fileToZip.getName(), zipOut);
+        zip(fileToZip.getName());
         zipOut.close();
         fos.close();
-
-        newFile = new File(file.getCanonicalPath().substring(0, file.getCanonicalPath().indexOf('.')) + ".docx");
-        file.renameTo(newFile);
 
 
     }
