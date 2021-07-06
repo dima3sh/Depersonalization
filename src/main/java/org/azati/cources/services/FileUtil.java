@@ -1,5 +1,7 @@
 package org.azati.cources.services;
 
+import org.azati.cources.entity.Picture;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -23,11 +25,11 @@ public class FileUtil {
         return zip;
     }
 
-    public static List<BufferedImage> getAllImages(File folder) throws IOException {
-        List<BufferedImage> images = new ArrayList<>();
+    public static List<Picture> getAllImages(File folder) throws IOException {
+        List<Picture> images = new ArrayList<>();
         for (File file : folder.listFiles()) {
             if (file.isFile() && isPicture(file.getCanonicalPath())) {
-                images.add(ImageIO.read(file));
+                images.add(new Picture(file.getCanonicalPath()));
             } else if (file.isDirectory()) {
                 images.addAll(getAllImages(file));
             }
@@ -39,18 +41,30 @@ public class FileUtil {
         for (File file : folder.listFiles()) {
             if (file.isFile() && isDocXML(file.getCanonicalPath())) {
                 return file;
-            } else if (file.isDirectory()) {
+            } else if (file.isDirectory() && file.getCanonicalPath().substring(file.getCanonicalPath().lastIndexOf('\\')).equals(folder)) {
                 return getDoc(file);
             }
         }
-        throw new IOException("file not found");
+        return new File(folder.getCanonicalPath() + File.separator + "word" + File.separator + "document.xml");
     }
 
     private static Boolean isPicture(String path) {
-        return path.substring(path.lastIndexOf('.')).matches("png|jpeg|jpg|gif");
+        return path.substring(path.lastIndexOf('.') + 1).matches("png|jpeg|jpg|gif");
     }
 
     private static Boolean isDocXML(String path) {
-       return path.substring(path.lastIndexOf('/')).equals("document.xml");
+        return path.substring(path.lastIndexOf('\\')).equals("document.xml");
+    }
+
+
+
+    public static boolean saveImage(BufferedImage image, String path) {
+        File result = new File(path);
+        try {
+            return ImageIO.write(image, path.substring(path.lastIndexOf('.') + 1), result);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }
